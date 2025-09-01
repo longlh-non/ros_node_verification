@@ -1,0 +1,6 @@
+int32 src
+int32 dst
+---
+bool found
+int32[] path
+float64 cost

@@ -1,0 +1,7 @@
+int32 u
+int32 v
+float64 w
+bool undirected
+---
+bool ok
+string message
