@@ -24,8 +24,8 @@ class Graph(Node):
 
         # Graph state
         self._next_id: int = 0
-        self._adj: Dict[int, List[Tuple[int, int]]] = {}  # adjacency list
-        self._pos: Dict[int, Tuple[float, float, float]] = {}  # node positions
+        self._adj: Dict[int, List[Tuple[int, int]]] = {}  # adjacency list u -> [(v, w), ...]
+        self._pos: Dict[int, Tuple[float, float, float]] = {}  # node positions id -> (x, y, z)
         self._name_to_id: Dict[str, int] = {}  # mapping from names to ids
 
         # Services
@@ -73,8 +73,8 @@ class Graph(Node):
         if name in self._name_to_id:
             response.id = self._name_to_id[name]
             self._pos[node_id] = (request.x, request.y, request.z)
-            response.success = False
-            response.message = f"Node '{name}' already exists with ID {response.id}."
+            response.success = True
+            response.message = f"Updated node '{name}' already exists with ID {response.id}."
             self.get_logger().warn(response.message)
             return response
 
@@ -151,6 +151,23 @@ class Graph(Node):
                     parent[v] = u
                     heapq.heappush(pq, (nd, v))
         return dist, parent
+    
+    def dfs_rec(self, visited: Dict[int, bool], s):
+        visited[s] = True
+        print(s, end=' ')
+        
+        # Recur for all the vertices adjacent to this vertex
+        for i, _ in self._adj.get(s, []):
+            if not visited.get(i, False):
+                self.dfs_rec(visited, i)
+    
+    def dfs(self, s):
+        visited = [False]*len(self._adj)
+        
+        # Call the recursive helper function to print DFS traversal
+        for i in range(len(self._adj)):
+            if not visited[i]:
+                self.dfs_rec(visited, s)
     
     # TODO: Add more graph algorithms as needed
 
