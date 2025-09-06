@@ -1,6 +1,7 @@
 import rclpy
 from rclpy.node import Node
 from verification_inf_pkg.msg import State
+from verification_inf_pkg.srv.graph_srv import AddNode, AddEdge, GetShortestPath
 
 
 # VerificationNode.
@@ -19,6 +20,49 @@ class VerificationNode(Node):
         self.verification_server = self.create_service(
             self,
         )
+
+        self.cli_add_node = self.create_client(AddNode, "graph/add_node")
+        self.cli_add_node = self.create_client(AddEdge, "graph/add_edge")
+        self.cli_shortest_path = self.create_client(GetShortestPath, "graph/shortest_path")
+
+        for cli in [self.cli_add_node, self.cli_add_edge, self.cli_shortest_path]:
+            while not cli.wait_for_service(timeout_sec=1.0):
+                self.get_logger().info("Waiting for graph service...")
+
+        # demo once on start up
+
+    def _call(self, cli, req):
+        while not cli.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info("service not available, waiting again...")
+        future = cli.call_async(req)
+        rclpy.spin_until_future_complete(self, future)
+        return future.result()
+
+    def test_graph(self):
+        self.destroy_timer(self.timer)
+        # add nodes
+        r1 = AddNode.Request()
+        r1.name = "A"
+        r1.x = r1.y = r1.z = 0.0
+        r2 = AddNode.Request()
+        r2.name = "B"
+        r2.x = 1
+        r2.y = r2.z = 1.0
+        a = self._call(self.cli_add_node, r1)
+        b = self._call(self.cli_add_node, r2)
+        # add edge from a to b
+        e = AddEdge.Request()
+        e.u = a.id
+        e.v = b.id
+        e.w = 1.0
+        e.undirected = False
+        self._call(self.cli_add_edge, e)
+        # shortest path from a to b
+        s = GetShortestPath.Request()
+        s.src = a.id
+        s.dst = b.id
+        ans = self._call(self.cli_shortest_path, s)
+        self.get_logger().info(f"Shortest path from {a.id} to {b.id}: {ans.path}")
 
     def verify_node(self):
         """Method that verifies the input sequence."""
@@ -65,13 +109,18 @@ def main(args=None):
     """
     try:
         rclpy.init(args=args)
+        
+        node = VerificationNode()
+        rclpy.spin(node)
 
-        print_forever_node = SampleA()
+        # print_forever_node = SampleA()
 
-        rclpy.spin(print_forever_node)
+        # rclpy.spin(print_forever_node)
     except KeyboardInterrupt:
         pass
     except Exception as e:
+        node.destroy_node()
+        rclpy.shutdown()
         print(e)
 
 
