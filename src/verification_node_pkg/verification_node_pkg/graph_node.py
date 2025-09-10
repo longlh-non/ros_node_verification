@@ -39,7 +39,7 @@ class Graph(Node):
             GetNeighbors, "graph_node/get_neighbors", self.handle_get_neighbors
         )
         self._srv_shortest = self.create_service(
-            GetShortestPath, "graph_node/get_shortest_path", self.handle_get_shortest_path
+            GetShortestPath, "graph_node/shortest_path", self.handle_get_shortest_path
         )
 
     # ---------------------- Service handlers ----------------------
@@ -48,7 +48,7 @@ class Graph(Node):
         """Method to add an edge to the graph."""
         u, v, w = request.u, request.v, float(request.w)
         if u not in self._adj or v not in self._adj:
-            response.success = False
+            response.ok = False
             response.message = f"One or both nodes {u}, {v} do not exist."
             self.get_logger().warn(response.message)
             return response
@@ -58,7 +58,7 @@ class Graph(Node):
         if request.undirected:
             self._adj[v].append((u, w))
 
-        response.success = True
+        response.ok = True
         response.message = f"Edge {u}->{v} (w={w})" + (
             ""
             if self._directed
@@ -73,7 +73,7 @@ class Graph(Node):
         if name in self._name_to_id:
             response.id = self._name_to_id[name]
             self._pos[node_id] = (request.x, request.y, request.z)
-            response.success = True
+            response.ok = True
             response.message = f"Updated node '{name}' already exists with ID {response.id}."
             self.get_logger().warn(response.message)
             return response
@@ -85,7 +85,7 @@ class Graph(Node):
         self._adj.setdefault(node_id, [])
 
         response.id = node_id
-        response.success = True
+        response.ok = True
         response.message = f"Node '{name}' added with ID {node_id} at position {self._pos[node_id]}."
         self.get_logger().info(response.message)
         return response

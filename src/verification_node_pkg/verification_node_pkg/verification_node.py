@@ -21,48 +21,66 @@ class VerificationNode(Node):
         #     self,
         # )
 
-        self.cli_add_node = self.create_client(AddNode, "graph/add_node")
-        self.cli_add_edge = self.create_client(AddEdge, "graph/add_edge")
-        self.cli_shortest_path = self.create_client(GetShortestPath, "graph/shortest_path")
+        self.cli_add_node = self.create_client(AddNode, "graph_node/add_node")
+        self.cli_add_edge = self.create_client(AddEdge, "graph_node/add_edge")
+        self.cli_shortest_path = self.create_client(GetShortestPath, "graph_node/shortest_path")
 
-        for cli in [self.cli_add_node, self.cli_add_edge, self.cli_shortest_path]:
-            while not cli.wait_for_service(timeout_sec=1.0):
-                self.get_logger().info("Waiting for graph service...")
+        # for cli in [self.cli_add_node, self.cli_add_edge, self.cli_shortest_path]:
+        #     while not cli.wait_for_service(timeout_sec=1.0):
+        #         self.get_logger().info("Waiting for graph service...")
 
         # demo once on start up
+        self.timer = self.create_timer(0.1, self.test_graph)
 
-    def _call(self, cli, req):
-        while not cli.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info("service not available, waiting again...")
-        future = cli.call_async(req)
-        rclpy.spin_until_future_complete(self, future)
-        return future.result()
+    def _call(self, cli, req, label):
+        try:
+            fut = cli.call_async(req)
+            rclpy.spin_until_future_complete(self, fut)
+            res = fut.result()
+            if res is None:
+                self.get_logger().error(f"{label}: service returned None (server error?)")
+            else:
+                self.get_logger().info(f"{label}: ok")
+            return res
+        except Exception as e:
+            self.get_logger().exception(f"{label}: exception during call: {e}")
+            return None
 
     def test_graph(self):
+        self.get_logger().info("Testing graph node…")
         self.destroy_timer(self.timer)
-        # add nodes
-        r1 = AddNode.Request()
-        r1.name = "A"
-        r1.x = r1.y = r1.z = 0.0
-        r2 = AddNode.Request()
-        r2.name = "B"
-        r2.x = 1
-        r2.y = r2.z = 1.0
-        a = self._call(self.cli_add_node, r1)
-        b = self._call(self.cli_add_node, r2)
-        # add edge from a to b
-        e = AddEdge.Request()
-        e.u = a.id
-        e.v = b.id
-        e.w = 1.0
-        e.undirected = False
-        self._call(self.cli_add_edge, e)
-        # shortest path from a to b
-        s = GetShortestPath.Request()
-        s.src = a.id
-        s.dst = b.id
-        ans = self._call(self.cli_shortest_path, s)
-        self.get_logger().info(f"Shortest path from {a.id} to {b.id}: {ans.path}")
+
+        try:
+            # add nodes
+            r1 = AddNode.Request(); r1.name = "A"; r1.x = r1.y = r1.z = 0.0
+            r2 = AddNode.Request(); r2.name = "B"; r2.x = 1.0; r2.y = r2.z = 1.0
+
+            a = self._call(self.cli_add_node, r1, "AddNode(A)")
+            b = self._call(self.cli_add_node, r2, "AddNode(B)")
+            if not a or not b:
+                self.get_logger().error("AddNode failed; aborting.")
+                return
+
+            # add edge a -> b
+            e = AddEdge.Request(); e.u = a.id; e.v = b.id; e.w = 1.0; e.undirected = False
+            edge_res = self._call(self.cli_add_edge, e, "AddEdge(A->B)")
+            if not edge_res or not edge_res.ok:
+                self.get_logger().error(f"AddEdge failed: {getattr(edge_res, 'message', 'no message')}")
+                return
+
+            # shortest path a -> b
+            s = GetShortestPath.Request(); s.src = a.id; s.dst = b.id
+            ans = self._call(self.cli_shortest_path, s, "GetShortestPath(A,B)")
+            if ans and getattr(ans, "found", True):  # if your srv has 'found'
+                path = list(getattr(ans, "path", []))
+                cost = getattr(ans, "cost", float("nan"))
+                self.get_logger().info(f"Shortest path from {a.id} to {b.id}: {path} (cost={cost})")
+            else:
+                self.get_logger().warn("No path found A -> B")
+
+        except Exception as e:
+            self.get_logger().exception(f"test_graph crashed: {e}")
+
 
     def verify_node(self):
         """Method that verifies the input sequence."""
