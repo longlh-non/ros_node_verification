@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'verification_node'
+package_name = 'verification_node_pkg'
 
 setup(
     name=package_name,
@@ -21,7 +21,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'graph_node = verification_node_pkg.graph:main',
+            'graph_node = verification_node_pkg.graph_node:main',
             'verification_node = verification_node_pkg.verification_node:main',
         ],
     },

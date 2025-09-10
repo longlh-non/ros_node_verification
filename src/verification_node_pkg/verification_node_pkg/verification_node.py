@@ -1,7 +1,7 @@
 import rclpy
 from rclpy.node import Node
 from verification_inf_pkg.msg import State
-from verification_inf_pkg.srv.graph_srv import AddNode, AddEdge, GetShortestPath
+from verification_inf_pkg.srv import AddNode, AddEdge, GetShortestPath
 
 
 # VerificationNode.
@@ -17,12 +17,12 @@ class VerificationNode(Node):
         )
         self.input_sequence: list = []
 
-        self.verification_server = self.create_service(
-            self,
-        )
+        # self.verification_server = self.create_service(
+        #     self,
+        # )
 
         self.cli_add_node = self.create_client(AddNode, "graph/add_node")
-        self.cli_add_node = self.create_client(AddEdge, "graph/add_edge")
+        self.cli_add_edge = self.create_client(AddEdge, "graph/add_edge")
         self.cli_shortest_path = self.create_client(GetShortestPath, "graph/shortest_path")
 
         for cli in [self.cli_add_node, self.cli_add_edge, self.cli_shortest_path]:

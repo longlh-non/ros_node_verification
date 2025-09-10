@@ -5,7 +5,7 @@ import rclpy
 from rclpy.node import Node
 
 # add srv here
-from verification_inf_pkg.srv.graph_srv import (
+from verification_inf_pkg.srv import (
     AddNode,
     AddEdge,
     GetNeighbors,
@@ -30,16 +30,16 @@ class Graph(Node):
 
         # Services
         self._srv_add_node = self.create_service(
-            AddNode, "graph/add_node", self.handle_add_node
+            AddNode, "graph_node/add_node", self.handle_add_node
         )
         self._srv_add_edge = self.create_service(
-            AddEdge, "graph/add_edge", self.handle_add_edge
+            AddEdge, "graph_node/add_edge", self.handle_add_edge
         )
         self._srv_neighbors = self.create_service(
-            GetNeighbors, "graph/get_neighbors", self.handle_get_neighbors
+            GetNeighbors, "graph_node/get_neighbors", self.handle_get_neighbors
         )
         self._srv_shortest = self.create_service(
-            GetShortestPath, "graph/get_shortest_path", self.handle_get_shortest_path
+            GetShortestPath, "graph_node/get_shortest_path", self.handle_get_shortest_path
         )
 
     # ---------------------- Service handlers ----------------------
@@ -182,9 +182,14 @@ def main(args=None):
         rclpy.init(args=args)
         graph_node = Graph()
         rclpy.spin(graph_node)
+        print(graph_node)
     except KeyboardInterrupt:
         pass
     finally:
+        rclpy.init(args=args)
+        graph_node = Graph()
+        rclpy.spin(graph_node)
+        print(graph_node)
         graph_node.destroy_node()
         rclpy.shutdown()
 

@@ -19,8 +19,10 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/graph_srv/AddEdge.srv"
   "srv/graph_srv/GetNeighbors.srv"
   "srv/graph_srv/GetShortestPath.srv"
+  "msg/Input.msg"
+  "msg/State.msg"
   #DEPENDENCIES
-  DEPENDENCIES service_msgs 
+  DEPENDENCIES service_msgs
 )
 
 if(BUILD_TESTING)

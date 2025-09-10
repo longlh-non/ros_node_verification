@@ -12,7 +12,7 @@ def generate_launch_description():
                 output="screen",
             ),
             Node(
-                package="graph",
+                package="verification_node_pkg",
                 executable="graph_node",
                 name="graph_node",
                 output="screen",
