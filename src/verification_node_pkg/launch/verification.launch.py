@@ -10,6 +10,7 @@ def generate_launch_description():
                 executable="verification_node",
                 name="verification_node",
                 output="screen",
+                parameters=[{'graph_ns': 'graph_node'}], 
             ),
             Node(
                 package="verification_node_pkg",

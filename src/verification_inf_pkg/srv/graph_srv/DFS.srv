@@ -1,0 +1,12 @@
+# Start node id for the DFS
+int32 src
+# Optional target; set to -1 to traverse whole reachable component
+int32 dst
+---
+# True if dst was specified (>=0) and was found during DFS
+bool found
+# Visitation order (node ids in the order they were first discovered)
+int32[] order
+# Path from src to dst if found, otherwise empty
+int32[] path
+

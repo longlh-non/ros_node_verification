@@ -10,6 +10,7 @@ from verification_inf_pkg.srv import (
     AddEdge,
     GetNeighbors,
     GetShortestPath,
+    DFS
 )
 
 
@@ -24,8 +25,12 @@ class Graph(Node):
 
         # Graph state
         self._next_id: int = 0
-        self._adj: Dict[int, List[Tuple[int, int]]] = {}  # adjacency list u -> [(v, w), ...]
-        self._pos: Dict[int, Tuple[float, float, float]] = {}  # node positions id -> (x, y, z)
+        self._adj: Dict[int, List[Tuple[int, int]]] = (
+            {}
+        )  # adjacency list u -> [(v, w), ...]
+        self._pos: Dict[int, Tuple[float, float, float]] = (
+            {}
+        )  # node positions id -> (x, y, z)
         self._name_to_id: Dict[str, int] = {}  # mapping from names to ids
 
         # Services
@@ -40,6 +45,9 @@ class Graph(Node):
         )
         self._srv_shortest = self.create_service(
             GetShortestPath, "graph_node/shortest_path", self.handle_get_shortest_path
+        )
+        self._srv_shortest = self.create_service(
+            DFS, "graph_node/dfs", self.handle_dfs
         )
 
     # ---------------------- Service handlers ----------------------
@@ -66,7 +74,7 @@ class Graph(Node):
         )
         self.get_logger().info(response.message)
         return response
-    
+
     def handle_add_node(self, request: AddNode.Request, response: AddNode.Response):
         """Method to add a node to the graph."""
         name = request.name.strip()
@@ -74,7 +82,9 @@ class Graph(Node):
             response.id = self._name_to_id[name]
             self._pos[node_id] = (request.x, request.y, request.z)
             response.ok = True
-            response.message = f"Updated node '{name}' already exists with ID {response.id}."
+            response.message = (
+                f"Updated node '{name}' already exists with ID {response.id}."
+            )
             self.get_logger().warn(response.message)
             return response
 
@@ -86,11 +96,15 @@ class Graph(Node):
 
         response.id = node_id
         response.ok = True
-        response.message = f"Node '{name}' added with ID {node_id} at position {self._pos[node_id]}."
+        response.message = (
+            f"Node '{name}' added with ID {node_id} at position {self._pos[node_id]}."
+        )
         self.get_logger().info(response.message)
         return response
-    
-    def handle_get_neighbors(self, request: GetNeighbors.Request, response: GetNeighbors.Response):
+
+    def handle_get_neighbors(
+        self, request: GetNeighbors.Request, response: GetNeighbors.Response
+    ):
         """Method to get neighbors of a node."""
         u = request.u
         nbrs = []
@@ -99,27 +113,29 @@ class Graph(Node):
         response.neighbors = nbrs
         self.get_logger().info(f"Neighbors of node {u}: {nbrs}")
         return response
-    
-    def handle_get_shortest_path(self, request: GetShortestPath.Request, response: GetShortestPath.Response):
+
+    def handle_get_shortest_path(
+        self, request: GetShortestPath.Request, response: GetShortestPath.Response
+    ):
         """Method to get the shortest path between two nodes using Dijkstra's algorithm."""
         src, dst = request.src, request.dst
         if src not in self._adj or dst not in self._adj:
             response.found = False
             response.path = []
-            response.cost = float('inf')
+            response.cost = float("inf")
             response.message = f"One or both nodes {src}, {dst} do not exist."
             self.get_logger().warn(response.message)
             return response
-        
+
         dist, parent = self._dijkstra(src)
-        if dist.get(dst, float('inf')) == float('inf'):
+        if dist.get(dst, float("inf")) == float("inf"):
             response.found = False
             response.path = []
-            response.cost = float('inf')
+            response.cost = float("inf")
             response.message = f"No path from {src} to {dst}."
             self.get_logger().info(response.message)
             return response
-        
+
         # Reconstruct path
         path = []
         cur = dst
@@ -127,15 +143,45 @@ class Graph(Node):
             path.append(cur)
             cur = parent.get(cur, -1)
         path.reverse()
-        
+
         response.found = True
         response.path = path
         response.cost = float(dist[dst])
         return response
-    
+
+
+    def handle_dfs(self, req: DFS.Request, res: DFS.Response):
+        src = int(req.src)
+        dst = int(req.dst)
+
+        if src not in self._adj:
+            res.found = False
+            res.order = []
+            res.path = []
+            self.get_logger().warn(f"DFS: source {src} does not exist")
+            return res
+
+        found, order, parent = self._dfs(src, dst)
+        res.found = dst >= 0 and found
+        res.order = order
+
+        if res.found:
+            # reconstruct src -> dst
+            path = []
+            cur = dst
+            while cur != -1:
+                path.append(cur)
+                cur = parent.get(cur, -1)
+            path.reverse()
+            res.path = path
+        else:
+            res.path = []
+
+        return res
+
     # ---------------------- Algorithms ----------------------
     def _dijkstra(self, src: int):
-        INF = float('inf')
+        INF = float("inf")
         dist = Dict[int, float] = {u: INF for u in self._adj}
         parent: Dict[int, int] = {}
         dist[src] = 0.0
@@ -151,24 +197,50 @@ class Graph(Node):
                     parent[v] = u
                     heapq.heappush(pq, (nd, v))
         return dist, parent
-    
-    def dfs_rec(self, visited: Dict[int, bool], s):
-        visited[s] = True
-        print(s, end=' ')
-        
-        # Recur for all the vertices adjacent to this vertex
-        for i, _ in self._adj.get(s, []):
-            if not visited.get(i, False):
-                self.dfs_rec(visited, i)
-    
-    def dfs(self, s):
-        visited = [False]*len(self._adj)
-        
-        # Call the recursive helper function to print DFS traversal
-        for i in range(len(self._adj)):
-            if not visited[i]:
-                self.dfs_rec(visited, s)
-    
+
+
+    def _dfs_rec(
+        self, u: int, dst: int, visited: set, order: list, parent: dict, found: list
+    ):
+        """Recursive DFS from u.
+        - visited: set of visited node ids
+        - order: append order of discovery
+        - parent: to reconstruct path to dst
+        - found: one-element list [bool] used as a mutable flag to early-exit when dst is reached
+        """
+        visited.add(u)
+        order.append(u)
+        if dst >= 0 and u == dst:
+            found[0] = True
+            return
+        # traverse neighbors (keep order deterministic if you want by sorting)
+        for v, _ in self._adj.get(u, []):
+            if v not in visited:
+                parent[v] = u
+                self._dfs_rec(v, dst, visited, order, parent, found)
+                if found[0]:
+                    return  # early exit bubbles up when dst found
+
+
+    def _dfs(self, s: int, dst: int = -1):
+        """Run DFS starting at s. If dst >= 0, stop when dst is found.
+        Returns: (found: bool, order: List[int], parent: Dict[int,int])
+        """
+        # cover *all* components reachable from s only
+        visited: set[int] = set()
+        order: list[int] = []
+        parent: dict[int, int] = {s: -1}
+        found = [False]
+        if s in self._adj:
+            self._dfs_rec(s, dst, visited, order, parent, found)
+
+        # cover the *entire* graph (multi-component)
+        # for u in self._adj.keys():
+        #     if u not in visited:
+        #         parent[u] = -1
+        #         self._dfs_rec(u, dst, visited, order, parent, found)
+        return (found[0], order, parent)
+
     # TODO: Add more graph algorithms as needed
 
 
@@ -196,4 +268,3 @@ def main(args=None):
 
 if __name__ == "__main__":
     main()
-# from verification_node_pkg.srv import AddNode, AddEdge, GetNeighbors, GetShortestPath
