@@ -1,0 +1,25 @@
+# Goal
+string obs_id
+string input
+string output
+---
+# Result
+# Current State
+string current_id
+string current_input
+string current_output
+# Previous State
+string prev_id
+string prev_input
+string prev_output
+---
+# Feedback
+# State info
+string state_id
+# Edge info counters
+uint32 aa
+uint32 bb
+uint32 ab
+uint32 ba
+uint32 a
+uint32 b

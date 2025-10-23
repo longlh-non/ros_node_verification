@@ -1,0 +1,18 @@
+# Required by your request
+node_name: /simple_node
+param_list:
+  - { char: "A" }
+  - { char: "A" }
+  - { char: "B" }
+  - { char: "B" }
+  - { char: "A" }
+  - { char: "B" }
+
+# Practical fields needed to launch a node as a process
+package: ros_simple_node_pkg
+executable: simple_node
+namespace: ros_simple_node_pkg                  # optional
+arguments: []                  # optional CLI args
+initial_params: { use_sim_time: false }  # optional: given at launch
+apply_interval_sec: 1.0        # optional: seconds between sequential param sets
+wait_for_service_sec: 10.0     # optional: how long to wait for /set_parameters

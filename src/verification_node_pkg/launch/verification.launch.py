@@ -10,7 +10,7 @@ def generate_launch_description():
                 executable="verification_node",
                 name="verification_node",
                 output="screen",
-                parameters=[{'graph_ns': 'graph_node'}], 
+                parameters=[{"graph_ns": "graph_node"}],
             ),
             Node(
                 package="verification_node_pkg",
@@ -18,6 +18,19 @@ def generate_launch_description():
                 name="graph_node",
                 output="screen",
                 parameters=[{"directed": True}],
+            ),
+            Node(
+                package="verification_node_pkg",
+                executable="state_monitor_node",
+                name="state_monitor",
+                parameters=[
+                    {
+                        "target_node": "/my_target_node",
+                        "watched_params": ["gain", "threshold", "mode"],
+                        "publish_topic": "/state_sidecar/summary",
+                        "auto_publish": True,
+                    }
+                ],
             ),
         ]
     )

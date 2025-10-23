@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'ros_simple_node'
+package_name = 'ros_simple_node_pkg'
 
 setup(
     name=package_name,
@@ -20,6 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'simple_node = ros_simple_node_pkg.simple_node:main',
         ],
     },
 )

@@ -1,0 +1,14 @@
+# Goal
+uint64 id
+string symbol         # 'a' or 'b' observed by the Monitor
+string config_path    # path to YAML config
+
+---
+# Result
+bool success
+string message
+
+---
+# Feedback
+uint64 id
+string edge           # one of: 'a','b','aa','ab','ba','bb'

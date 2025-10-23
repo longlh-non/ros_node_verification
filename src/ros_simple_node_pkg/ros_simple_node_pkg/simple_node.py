@@ -1,62 +1,55 @@
+#!/usr/bin/env python3
 import rclpy
-import rospy
 from rclpy.node import Node
-from verification_inf_pkg.msg import State
+from rcl_interfaces.msg import SetParametersResult
+from std_msgs.msg import String
 
-#Sample A: Input a sequence of characters in the set of {a, b} and return {true, false, waiting}.
-class SampleA(Node):
 
+class SimpleNode(Node):
+    """
+    Publishes the value of parameter 'input' ('a' or 'b') to 'telemetry'.
+    """
     def __init__(self):
-        super().__init__('input_sequence')
-        self.declare_parameter('input', 'a')
-        input: str = self.get_parameter('input').get_parameter_value().string_value
-        self.declare_parameter('prev_input', '')
-        prev_input: str = self.get_parameter('prev_input').get_parameter_value().string_value
-        self.declare_parameter('output', 'waiting')
-        self.state_publisher = self.create_publisher(
-            msg_type=State,
-            topic='state_topic',
-            qos_profile=1)
-        self.state_input_subscriber = self.create_subscription(
-            msg_type=State,
-            topic='input_topic',
-            callback=self.listener_callback,
-            qos_profile=1)
+        super().__init__('simple_node')
+
+        # single required parameter for this node
+        self.declare_parameter('input', 'a')  # 'a' or 'b'
+
+        self._pub = self.create_publisher(String, 'telemetry', 10)
+
+        # steady timer; message content is driven solely by the 'input' param
+        self._timer = self.create_timer(0.5, self._on_timer)
+
+        # allow runtime tweaking of 'input'
+        self.add_on_set_parameters_callback(self._on_params_set)
+
+    def _on_timer(self):
+        val = str(self.get_parameter('input').value).lower()
+        if val not in ('a', 'b'):
+            val = 'a'
+        msg = String(data=val)
+        self._pub.publish(msg)
+
+    def _on_params_set(self, params):
+        # validate changes to 'input' param
+        for p in params:
+            if p.name == 'input':
+                new_val = str(p.value).lower()
+                if new_val not in ('a', 'b'):
+                    # reject invalid values
+                    return SetParametersResult(successful=False,
+                                               reason="input must be 'a' or 'b'")
+        return SetParametersResult(successful=True)
 
 
-    def print_result(self):
-        """Method that returns the result of the input sequence."""
-        if self.prev_input == self.input:
-            self.output = 'false'
-            self.prev_input = ''  # Reset prev_input to allow for new input
-        else:
-            if self.prev_input == '':
-                self.output =  'waiting'
-            else:
-                self.output = 'true'
-            self.prev_input = self.input  # Update prev_input for next call
-        # Publish the state message
-        self.state_publisher.publish(State(output=self.output, input=self.input, prev_input=self.prev_input))   
-
-        self.get_logger().info(self.output)
-
-def main(args=None):
-    """
-    The main function.
-    :param args: Not used directly by the user, but used by ROS2 to configure
-    certain aspects of the Node.
-    """
+def main():
+    rclpy.init()
+    node = SimpleNode()
     try:
-        rclpy.init(args=args)
-
-        sampleA = SampleA()
-
-        rclpy.spin(sampleA)
-        
-    except KeyboardInterrupt:
-        pass
-    except Exception as e:
-        print(e)
+        rclpy.spin(node)  # default SingleThreadedExecutor
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
 
 
 if __name__ == '__main__':

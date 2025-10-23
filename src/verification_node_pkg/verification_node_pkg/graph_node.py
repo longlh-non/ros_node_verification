@@ -28,9 +28,6 @@ class Graph(Node):
         self._adj: Dict[int, List[Tuple[int, int]]] = (
             {}
         )  # adjacency list u -> [(v, w), ...]
-        self._pos: Dict[int, Tuple[float, float, float]] = (
-            {}
-        )  # node positions id -> (x, y, z)
         self._name_to_id: Dict[str, int] = {}  # mapping from names to ids
 
         # Services
@@ -80,7 +77,6 @@ class Graph(Node):
         name = request.name.strip()
         if name in self._name_to_id:
             response.id = self._name_to_id[name]
-            self._pos[node_id] = (request.x, request.y, request.z)
             response.ok = True
             response.message = (
                 f"Updated node '{name}' already exists with ID {response.id}."
@@ -91,13 +87,12 @@ class Graph(Node):
         node_id = self._next_id
         self._next_id += 1
         self._name_to_id[name] = node_id
-        self._pos[node_id] = (request.x, request.y, request.z)
         self._adj.setdefault(node_id, [])
 
         response.id = node_id
         response.ok = True
         response.message = (
-            f"Node '{name}' added with ID {node_id} at position {self._pos[node_id]}."
+            f"Node '{name}' added with ID {node_id}"
         )
         self.get_logger().info(response.message)
         return response

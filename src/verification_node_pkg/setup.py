@@ -23,6 +23,8 @@ setup(
         'console_scripts': [
             'graph_node = verification_node_pkg.graph_node:main',
             'verification_node = verification_node_pkg.verification_node:main',
+            'monitor = verification_node_pkg.monitor:main',
+            'generator = verification_node_pkg.generator:main',
         ],
     },
 )

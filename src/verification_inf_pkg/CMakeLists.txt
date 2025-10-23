@@ -20,8 +20,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/graph_srv/GetNeighbors.srv"
   "srv/graph_srv/GetShortestPath.srv"
   "srv/graph_srv/DFS.srv"
+  "action/BuildGraph.action"
   "msg/Input.msg"
-  "msg/State.msg"
   #DEPENDENCIES
   DEPENDENCIES service_msgs
 )
