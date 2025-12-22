@@ -1,5 +1,5 @@
 # Goal
-uint64 id
+uint64 obs_id
 string symbol         # 'a' or 'b' observed by the Monitor
 string config_path    # path to YAML config
 
@@ -10,5 +10,5 @@ string message
 
 ---
 # Feedback
-uint64 id
+uint64 obs_id
 string edge           # one of: 'a','b','aa','ab','ba','bb'

@@ -23,7 +23,7 @@ class Generator(RclpyNode):
         super().__init__("generator")
         self.declare_parameter("config_path", "")
         self.config_path = self.get_parameter("config_path").value
-        print("AM STUPID  ", self.config_path)
+
         if not self.config_path:
             raise RuntimeError("Missing 'config_path' parameter for generator node.")
         if not os.path.exists(self.config_path):
@@ -78,6 +78,15 @@ class Generator(RclpyNode):
             output="screen",
         )
 
+        # Graph Node
+        graph_node = Node(
+            package="verification_node_pkg",
+            executable="graph_node",
+            name="graph_node",
+            parameters=[],
+            output="screen",
+        )
+
         # Monitor Node
         monitor_node = Node(
             package="verification_node_pkg",
@@ -87,9 +96,12 @@ class Generator(RclpyNode):
             output="screen",
         )
 
-        ld.add_action(LogInfo(msg=f"Launching target node [{pkg}/{exe}] as {node_name}"))
+        ld.add_action(
+            LogInfo(msg=f"Launching target node [{pkg}/{exe}] as {node_name}")
+        )
         ld.add_action(target_node)
         ld.add_action(verification_node)
+        ld.add_action(graph_node)
         ld.add_action(monitor_node)
 
         # ---- Run the launch service ----

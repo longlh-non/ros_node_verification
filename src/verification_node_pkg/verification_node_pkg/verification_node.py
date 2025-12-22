@@ -3,7 +3,6 @@
 import os
 import sys
 import yaml
-import asyncio
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 
@@ -90,7 +89,7 @@ class VerificationNode(Node):
         # ---- Verify action (key integration)
         # Expected goal fields: obs_id (uint64), input (string), output (string)
         self._verify_action = ActionServer(
-            self, BuildGraph, "verify", execute_callback=self._verify_execute_cb
+            self, BuildGraph, "build_graph", execute_callback=self._verify_execute_cb
         )
 
         # Internal state for edge computation + parameter application index
@@ -122,7 +121,7 @@ class VerificationNode(Node):
             RuntimeError: If required keys are missing.
         """
         candidates = []
-        print("yaml_path is here: ", yaml_path)
+
         p = Path(yaml_path)
 
         if p.is_absolute():
@@ -167,7 +166,7 @@ class VerificationNode(Node):
 
         return data
 
-    async def _apply_next_param_set(self):
+    def _apply_next_param_set(self):
         """
         Applies param_list[self._apply_index] to <node_name>.input (as 'a' or 'b'),
         then increments index. No-op when list exhausted.
@@ -184,13 +183,13 @@ class VerificationNode(Node):
 
         client = self.create_client(SetParameters, target_service)
         self.get_logger().info(f"Waiting for {target_service} ...")
-        if not await client.wait_for_service(timeout_sec=self.wait_for_service_sec):
+        if not client.wait_for_service(timeout_sec=self.wait_for_service_sec):
             self.get_logger().error(f"{target_service} not available.")
             return
 
         req = SetParameters.Request()
         req.parameters = [Parameter("input", value=desired).to_parameter_msg()]
-        resp = await client.call_async(req)
+        resp =  client.call_async(req)
 
         ok = all(r.successful for r in resp.results)
         if ok:
@@ -200,7 +199,7 @@ class VerificationNode(Node):
 
     # ---------- Verify action callback ----------
 
-    async def _verify_execute_cb(self, goal_handle):
+    def _verify_execute_cb(self, goal_handle):
         """
         Build edge from last symbol and current 'input', send feedback,
         then apply next param_list entry (starting at index 1).
@@ -208,7 +207,7 @@ class VerificationNode(Node):
         goal = goal_handle.request
 
         # Normalize symbol
-        symbol = (goal.input or "").strip().lower()
+        symbol = (goal.symbol or "").strip().lower()
         if symbol not in ("a", "b"):
             symbol = "a"
 
@@ -217,20 +216,16 @@ class VerificationNode(Node):
 
         # Feedback with id + edge
         fb = BuildGraph.Feedback()
-        fb.id = int(goal.obs_id)
+        fb.obs_id = int(goal.obs_id)
         fb.edge = edge
         goal_handle.publish_feedback(fb)
-        self.get_logger().info(f"[verify] id={fb.id} edge='{fb.edge}'")
+        self.get_logger().info(f"[verify] id={fb.obs_id} edge='{fb.edge}'")
 
         # Update last symbol
         self._last_symbol = symbol
 
-        # Optional pacing
-        if self.apply_interval_sec > 0:
-            await asyncio.sleep(self.apply_interval_sec)
-
         # Apply next param set (skip first element as requested)
-        await self._apply_next_param_set()
+        self._apply_next_param_set()
 
         # Result
         result = BuildGraph.Result()
@@ -361,10 +356,10 @@ def main(args=None):
         return
 
     # Ensure asyncio loop exists (important when used with rclpy)
-    try:
-        asyncio.get_event_loop()
-    except RuntimeError:
-        asyncio.set_event_loop(asyncio.new_event_loop())
+    # try:
+    #     asyncio.get_event_loop()
+    # except RuntimeError:
+    #     asyncio.set_event_loop(asyncio.new_event_loop())
 
     rclpy.init()
     node = VerificationNode(cfg)

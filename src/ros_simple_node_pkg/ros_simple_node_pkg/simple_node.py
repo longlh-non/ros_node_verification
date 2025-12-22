@@ -15,7 +15,7 @@ class SimpleNode(Node):
         # single required parameter for this node
         self.declare_parameter('input', 'a')  # 'a' or 'b'
 
-        self._pub = self.create_publisher(String, 'telemetry', 10)
+        self._pub = self.create_publisher(String, 'state_output', 10)
 
         # steady timer; message content is driven solely by the 'input' param
         self._timer = self.create_timer(0.5, self._on_timer)
@@ -28,6 +28,7 @@ class SimpleNode(Node):
         if val not in ('a', 'b'):
             val = 'a'
         msg = String(data=val)
+        self.get_logger().info(f"msg: {msg}")
         self._pub.publish(msg)
 
     def _on_params_set(self, params):
