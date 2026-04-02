@@ -30,7 +30,7 @@ class Monitor(Node):
         super().__init__('monitor')
 
         # ---- parameters
-        self.declare_parameter('config_path', '')
+        self.declare_parameter('config_path', '/config.yaml')
         self.declare_parameter('state_file', '/tmp/state_list.json')
         # self.declare_parameter('topic_name', '/state_output')  # <<< make topic explicit
 
@@ -43,7 +43,7 @@ class Monitor(Node):
         else:
             self.config = {}
 
-        self._topic = f'{self.config.get('package')}/state_output'
+        self._topic = f'{self.config.get("package")}/state_output'
 
         # ---- state tracking
         self._states: List[dict] = []

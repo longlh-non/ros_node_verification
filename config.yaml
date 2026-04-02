@@ -1,12 +1,12 @@
 # Required by your request
-node_name: /simple_node
+node_name: simple_node
 param_list:
-  - { char: "a" }
-  - { char: "a" }
-  - { char: "b" }
-  - { char: "b" }
-  - { char: "a" }
-  - { char: "b" }
+  - "a" 
+  - "a" 
+  - "b"
+  - "b"
+  - "a"
+  - "b" 
 
 # Practical fields needed to launch a node as a process
 package: ros_simple_node_pkg

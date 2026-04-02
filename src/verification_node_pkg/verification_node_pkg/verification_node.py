@@ -5,6 +5,8 @@ import sys
 import yaml
 from typing import List, Dict, Any, Optional
 from pathlib import Path
+from std_msgs.msg import String
+import subprocess
 
 try:
     from ament_index_python.packages import get_package_share_directory
@@ -48,13 +50,17 @@ class VerificationNode(Node):
         super().__init__("verification_node")
 
         # ---- Load YAML
-        self.declare_parameter('config_path', '')
+        self.declare_parameter('config_path', '/config.yaml')
         self._config_path: str = self.get_parameter('config_path').value
         self.config = self._load_yaml(yaml_path=self._config_path)
         self.node_name: str = _ensure_abs_node_name(self.config["node_name"])
         self.param_list: List[Dict[str, Any]] = self.config.get("param_list", [])
         if not isinstance(self.param_list, list):
             raise RuntimeError("param_list must be a list of dictionaries")
+        self.get_logger().info(f"Monitor subscribing to: {self.config}")
+        
+        subprocess.Popen(['ros2', 'run', self.config.get('package'), self.config.get('node_name')])
+
 
         # Practical fields (present but not strictly required here)
         self.namespace: str = self.config.get("namespace", "")
@@ -95,6 +101,8 @@ class VerificationNode(Node):
         # Internal state for edge computation + parameter application index
         self._last_symbol: Optional[str] = None
         self._apply_index: int = 1  # start from *second* element in param_list
+        
+        self._input_pub = self.create_publisher(String, f"{self.node_name}/input_stream", 10)
 
     # ---------- helpers ----------
 

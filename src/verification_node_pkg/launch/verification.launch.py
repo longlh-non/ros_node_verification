@@ -10,7 +10,7 @@ def generate_launch_description():
                 executable="verification_node",
                 name="verification_node",
                 output="screen",
-                parameters=[{"graph_ns": "graph_node"}],
+                parameters=[{"graph_ns": "graph_node", "config_path": "config.yaml"}],
             ),
             Node(
                 package="verification_node_pkg",
@@ -21,8 +21,8 @@ def generate_launch_description():
             ),
             Node(
                 package="verification_node_pkg",
-                executable="state_monitor_node",
-                name="state_monitor",
+                executable="monitor",
+                name="monitor",
                 parameters=[
                     {
                         "target_node": "/my_target_node",
