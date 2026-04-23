@@ -102,7 +102,24 @@ class VerificationNode(Node):
         self._last_symbol: Optional[str] = None
         self._apply_index: int = 1  # start from *second* element in param_list
         
-        self._input_pub = self.create_publisher(String, f"{self.node_name}/input_stream", 10)
+        self._input_stream = self.config.get("input_stream", ['a', 'b', 'b', 'a', 'a', 'b'])
+        self._stream_index = 0
+        self._input_pub = self.create_publisher(String, 'input', 10)
+        self._stream_timer = self.create_timer(1.0, self._publish_next_input)
+
+    def _publish_next_input(self):
+        if self._stream_index >= len(self._input_stream):
+            self._stream_timer.cancel()
+            self.get_logger().info("[stream] Input stream exhausted.")
+            return
+
+        symbol = self._input_stream[self._stream_index]
+        self._stream_index += 1
+
+        msg = String()
+        msg.data = str(symbol)
+        self._input_pub.publish(msg)
+        self.get_logger().info(f"[stream] Published input '{symbol}' ({self._stream_index}/{len(self._input_stream)})")
 
     # ---------- helpers ----------
 
