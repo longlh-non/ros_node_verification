@@ -69,15 +69,15 @@ class KripkeStructure:
         if is_new:
             self._visited.add(next_node)
             self.add_node(next_node, ap={f'in_state_{next_node}'})
-            self.logger.info(f"[Kripke build] Discovered new node {next_node}")
+            self.logger.info(f"[Kripke build] Discovered new state {next_node}")
             for existing_id in list(self.nodes.keys()):
                 self.add_edge(existing_id, f'sc={next_node}', next_node)
                 self.add_edge(next_node, f'sc={existing_id}', existing_id)
-                self.logger.info(f"[Kripke build]   sc edge: Node {existing_id} --[sc={next_node}]--> Node {next_node}")
+                self.logger.info(f"[Kripke build]   sc edge: State {existing_id} --[sc={next_node}]--> State {next_node}")
 
         if self.get_edge(current, symbol) is None:
             out_str = output if output else '∅'
-            self.logger.info(f"[Kripke build] Edge: Node {current} --[{symbol}]--> Node {next_node}  output={out_str}"
+            self.logger.info(f"[Kripke build] Edge: State {current} --[{symbol}]--> State {next_node}  output={out_str}"
                              + (" (back-edge)" if not is_new else ""))
             self.add_edge(current, symbol, next_node, output)
 
@@ -88,13 +88,13 @@ class KripkeStructure:
         for node_id, node in self.nodes.items():
             state_props = {p for p in node.atomic_props if p.startswith('in_state_')}
             props = ', '.join(sorted(state_props)) if state_props else '∅'
-            logger.info(f"  Node {node_id}  AP={{{props}}}")
+            logger.info(f"  State {node_id}  AP={{{props}}}")
             for label, edge in node.edges.items():
                 out_str = f" / {edge.output}" if edge.output else ""
-                logger.info(f"    --[{label}{out_str}]--> Node {edge.to_node}")
+                logger.info(f"    --[{label}{out_str}]--> State {edge.to_node}")
 
 
-class SimpleFSMNode(RosNode):
+class SimpleKripkeNode(RosNode):
     def __init__(self):
         super().__init__('fsm_node')
 
@@ -111,7 +111,7 @@ class SimpleFSMNode(RosNode):
         self.create_subscription(String, 'state_change', self.state_change_callback, 10)
 
         self._publish_state(self.current_node)
-        self.get_logger().info(f"FSM Node started. Initial node: {self.current_node}")
+        self.get_logger().info(f"Simple Kripke Node started. Initial state: {self.current_node}")
 
     def _derive_output(self, current_node, input_val):
         if current_node == 1 and input_val == 'a':
@@ -135,7 +135,7 @@ class SimpleFSMNode(RosNode):
         out_str = output if output else '∅'
 
         self.get_logger().info(
-            f"Node {self.current_node} --[{input_val}]--> Node {next_node}  output={out_str}"
+            f"State {self.current_node} --[{input_val}]--> State {next_node}  output={out_str}"
         )
         self.current_node = next_node
         self._publish_state(self.current_node)
@@ -163,7 +163,7 @@ class SimpleFSMNode(RosNode):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = SimpleFSMNode()
+    node = SimpleKripkeNode()
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
