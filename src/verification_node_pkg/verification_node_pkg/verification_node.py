@@ -51,10 +51,12 @@ class VerificationNode(Node):
 
         # ---- Load YAML
         self.declare_parameter('config_path', '/config.yaml')
+        self.declare_parameter('input_symbol', '')
         self._config_path: str = self.get_parameter('config_path').value
         self.config = self._load_yaml(yaml_path=self._config_path)
         self.node_name: str = _ensure_abs_node_name(self.config["node_name"])
         self.param_list: List[Dict[str, Any]] = self.config.get("param_list", [])
+        self.input_symbol:str = self.get_parameter('input_symbol').value or 'a'
         if not isinstance(self.param_list, list):
             raise RuntimeError("param_list must be a list of dictionaries")
         self.get_logger().info(f"Monitor subscribing to: {self.config}")
@@ -105,21 +107,35 @@ class VerificationNode(Node):
         self._input_stream = self.config.get("input_stream", ['a', 'b', 'b', 'a', 'a', 'b'])
         self._stream_index = 0
         self._input_pub = self.create_publisher(String, 'input', 10)
-        self._stream_timer = self.create_timer(1.0, self._publish_next_input)
+        self._state_change_pub = self.create_publisher(String, 'state_change', 10)
 
-    def _publish_next_input(self):
-        if self._stream_index >= len(self._input_stream):
-            self._stream_timer.cancel()
-            self.get_logger().info("[stream] Input stream exhausted.")
-            return
+        self._state_sub = self.create_subscription(String, 'state', self._state_sub_callback, 10)
 
-        symbol = self._input_stream[self._stream_index]
-        self._stream_index += 1
+        self.add_post_set_parameters_callback(self._publish_input)
 
-        msg = String()
-        msg.data = str(symbol)
-        self._input_pub.publish(msg)
-        self.get_logger().info(f"[stream] Published input '{symbol}' ({self._stream_index}/{len(self._input_stream)})")
+        # self._stream_timer = self.create_timer(1.0, self._publish_input)
+
+    def _publish_input(self, params):
+        # if self._stream_index >= len(self._input_stream):
+        #     self._stream_timer.cancel()
+        #     self.get_logger().info("[stream] Input stream exhausted.")
+        #     return
+
+        # symbol = self.input_symbol
+        # self._stream_index += 1
+        for param in params:
+            if param.name == 'input_symbol':
+                symbol = param.value
+                self.get_logger().info(f"[stream] Published input '{symbol}'")
+
+                self._input_stream.append(symbol)
+                msg = String()
+                msg.data = str(symbol)
+                self._input_pub.publish(msg)
+                self.get_logger().info(f"[stream] Published input '{symbol}'")
+        
+    def _state_sub_callback(self, state):
+        self.get_logger().info(f"[state] Received state: {state.data}")
 
     # ---------- helpers ----------
 

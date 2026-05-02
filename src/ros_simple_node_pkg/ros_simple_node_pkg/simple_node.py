@@ -126,6 +126,9 @@ class SimpleKripkeNode(RosNode):
         self.state_publisher.publish(msg)
 
     def input_callback(self, msg):
+        self.get_logger().info(
+            f"{msg}"
+        )
         input_val = msg.data.strip()
 
         # Build Kripke graph from the symbol received from verification_node
